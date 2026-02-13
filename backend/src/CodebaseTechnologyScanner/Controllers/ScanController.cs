@@ -31,11 +31,11 @@ public class ScanController(IFileScanner fileScanner, ILogger<ScanController> lo
         // Validate request
         if (request is null)
         {
-            _logger.LogWarning(\"Scan request is null\");
+            _logger.LogWarning("Scan request is null");
             return BadRequest(new ProblemDetails
             {
-                Title = \"Invalid Request\",
-                Detail = \"Request body cannot be empty.\",
+                Title = "Invalid Request",
+                Detail = "Request body cannot be empty.",
                 Status = StatusCodes.Status400BadRequest,
             });
         }
@@ -43,23 +43,23 @@ public class ScanController(IFileScanner fileScanner, ILogger<ScanController> lo
         // Validate path
         if (string.IsNullOrWhiteSpace(request.Path))
         {
-            _logger.LogWarning(\"Scan request has empty or whitespace path\");
+            _logger.LogWarning("Scan request has empty or whitespace path");
             return BadRequest(new ProblemDetails
             {
-                Title = \"Invalid Path\",
-                Detail = \"The path parameter is required and cannot be empty.\",
+                Title = "Invalid Path",
+                Detail = "The path parameter is required and cannot be empty.",
                 Status = StatusCodes.Status400BadRequest,
             });
         }
 
         try
         {
-            _logger.LogInformation(\"Scan request received for path: {Path}\", request.Path);
+            _logger.LogInformation("Scan request received for path: {Path}", request.Path);
             
             var result = await _fileScanner.ScanAsync(request).ConfigureAwait(false);
             
             _logger.LogInformation(
-                \"Scan completed. Files scanned: {FilesScanned}, Items detected: {ItemsCount}\",
+                "Scan completed. Files scanned: {FilesScanned}, Items detected: {ItemsCount}",
                 result.FilesScanned,
                 result.Items.Count);
             
@@ -67,21 +67,21 @@ public class ScanController(IFileScanner fileScanner, ILogger<ScanController> lo
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, \"Argument error during scan\");
+            _logger.LogWarning(ex, "Argument error during scan");
             return BadRequest(new ProblemDetails
             {
-                Title = \"Invalid Argument\",
+                Title = "Invalid Argument",
                 Detail = ex.Message,
                 Status = StatusCodes.Status400BadRequest,
             });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, \"Unexpected error during scan for path: {Path}\", request.Path);
+            _logger.LogError(ex, "Unexpected error during scan for path: {Path}", request.Path);
             return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
             {
-                Title = \"Internal Server Error\",
-                Detail = \"An unexpected error occurred while scanning the directory.\",
+                Title = "Internal Server Error",
+                Detail = "An unexpected error occurred while scanning the directory.",
                 Status = StatusCodes.Status500InternalServerError,
             });
         }

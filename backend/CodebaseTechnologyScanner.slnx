@@ -1,3 +1,5 @@
 <Solution>
   <Project Path="src/CodebaseTechnologyScanner/CodebaseTechnologyScanner.csproj" />
+  <Project Path="src/TechScanner.Api/TechScanner.Api.csproj" />
+  <Project Path="src/TechScanner.Tests/TechScanner.Tests.csproj" />
 </Solution>
