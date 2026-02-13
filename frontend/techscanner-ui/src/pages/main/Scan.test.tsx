@@ -66,4 +66,51 @@ describe("Scan Component", () => {
       expect(errorMessage).toBeInTheDocument();
     });
   });
+
+  it("displays loading indicator while fetching", async () => {
+    // Mock fetch with delayed promise (resolves after 100ms)
+    (global.fetch as any).mockImplementation(
+      () =>
+        new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve({
+                ok: true,
+                json: async () => ({
+                  csProjFiles: [],
+                  packageJsonFiles: [],
+                  dockerfiles: [],
+                  totalFiles: 0,
+                }),
+              }),
+            100
+          )
+        )
+    );
+
+    const user = userEvent.setup();
+
+    render(
+      <BrowserRouter>
+        <Scan />
+      </BrowserRouter>
+    );
+
+    // Enter directory path
+    const input = screen.getByLabelText(/directory path/i);
+    await user.type(input, "C:/projects");
+
+    // Click scan button
+    const button = screen.getByRole("button", { name: /scan|start/i });
+    await user.click(button);
+
+    // Assert loading indicator is visible
+    const loadingText = screen.getByText(/scanning/i);
+    expect(loadingText).toBeInTheDocument();
+
+    // Wait for scan to complete (optional: verify it disappears)
+    await waitFor(() => {
+      expect(screen.queryByText(/scanning/i)).not.toBeInTheDocument();
+    });
+  });
 });
