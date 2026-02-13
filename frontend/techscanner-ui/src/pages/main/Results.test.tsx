@@ -1,5 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { Results } from "../main/Results";
 
 describe("Results Component", () => {
@@ -10,20 +11,32 @@ describe("Results Component", () => {
       packageJsonFiles: ["package.json"],
       dockerfiles: ["Dockerfile"],
     };
-    sessionStorage.getItem = vi.fn(() => JSON.stringify(mockResults));
+    sessionStorage.setItem("scanResults", JSON.stringify(mockResults));
   });
 
-  it("displays files scanned count", () => {
-    render(<Results />);
+  afterEach(() => {
+    sessionStorage.clear();
+  });
 
-    const fileCount = screen.queryByText(/25|scanned/i);
-    expect(fileCount).toBeTruthy();
+  it("displays files scanned count", async () => {
+    render(
+      <MemoryRouter>
+        <Results />
+      </MemoryRouter>
+    );
+
+    const fileCount = await screen.findByText("25");
+    expect(fileCount).toBeInTheDocument();
   });
 
   it("displays detected items section", () => {
-    render(<Results />);
+    render(
+      <MemoryRouter>
+        <Results />
+      </MemoryRouter>
+    );
 
-    const content = screen.getByText(/results|detected|files/i);
-    expect(content).toBeInTheDocument();
+    const heading = screen.getByRole("heading", { name: /scan results/i });
+    expect(heading).toBeInTheDocument();
   });
 });

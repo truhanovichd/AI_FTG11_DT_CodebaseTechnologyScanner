@@ -13,7 +13,7 @@ describe("Home Component", () => {
   it("renders description text", () => {
     render(<Home />);
 
-    const text = screen.getByText(/scan|codebase|detect/i);
-    expect(text).toBeInTheDocument();
+    const textMatches = screen.getAllByText(/scan|codebase|detect/i);
+    expect(textMatches.length).toBeGreaterThan(0);
   });
 });
