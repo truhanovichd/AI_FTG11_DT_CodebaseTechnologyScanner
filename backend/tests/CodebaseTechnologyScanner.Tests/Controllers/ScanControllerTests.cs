@@ -196,4 +196,249 @@ public class ScanControllerTests
         var returnedResult = (ScanResult)okResult.Value;
         returnedResult.Items.Should().HaveCount(2);
     }
+
+    [Fact]
+    public async Task Scan_WithPathContainingSpecialCharacters_ProcessesSuccessfully()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/Projects/My-App_2024/src" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 5,
+            Items = new List<DetectedItem>()
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        okResult.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
+
+    [Fact]
+    public async Task Scan_WithUNCNetworkPath_ProcessesSuccessfully()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = @"\\server\share\project" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 20,
+            Items = new List<DetectedItem>
+            {
+                new() { Kind = "Docker", Name = "App", Evidence = "Dockerfile" }
+            }
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        var returnedResult = (ScanResult)okResult.Value;
+        returnedResult.Items.Should().HaveCount(1);
+        returnedResult.Items[0].Kind.Should().Be("Docker");
+    }
+
+    [Fact]
+    public async Task Scan_WithPathTrailingSlash_ProcessesSuccessfully()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/projects/app/" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 15,
+            Items = new List<DetectedItem>()
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        okResult.StatusCode.Should().Be(StatusCodes.Status200OK);
+        _mockFileScanner.Verify(fs => fs.ScanAsync(It.IsAny<ScanRequest>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Scan_WhenServiceThrowsUnauthorizedAccessException_ReturnsForbidden()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/protected" };
+        _mockFileScanner.Setup(fs => fs.ScanAsync(It.IsAny<ScanRequest>()))
+            .ThrowsAsync(new UnauthorizedAccessException("Access denied"));
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>();
+        var errorResult = (ObjectResult)result.Result;
+        errorResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+    }
+
+    [Fact]
+    public async Task Scan_WhenServiceThrowsIOException_ReturnsInternalServerError()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/inaccessible" };
+        _mockFileScanner.Setup(fs => fs.ScanAsync(It.IsAny<ScanRequest>()))
+            .ThrowsAsync(new IOException("Disk error"));
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<ObjectResult>();
+        var errorResult = (ObjectResult)result.Result;
+        errorResult.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        var problemDetails = (ProblemDetails)errorResult.Value;
+        problemDetails?.Title.Should().Be("Internal Server Error");
+    }
+
+    [Fact]
+    public async Task Scan_WithMultipleDetectedItems_ReturnsAllInResult()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/fullstack-app" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 100,
+            Items = new List<DetectedItem>
+            {
+                new() { Kind = "CSharp", Name = "Backend", Evidence = "Backend.csproj" },
+                new() { Kind = "CSharp", Name = "Services", Evidence = "Services.csproj" },
+                new() { Kind = "Node.js", Name = "Frontend", Evidence = "package.json" },
+                new() { Kind = "Docker", Name = "App", Evidence = "Dockerfile" }
+            }
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        var returnedResult = (ScanResult)okResult.Value;
+        returnedResult.Items.Should().HaveCount(4);
+        returnedResult.Items.Should().Contain(i => i.Kind == "CSharp");
+        returnedResult.Items.Should().Contain(i => i.Kind == "Node.js");
+        returnedResult.Items.Should().Contain(i => i.Kind == "Docker");
+        returnedResult.FilesScanned.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task Scan_WithLongPath_ProcessesSuccessfully()
+    {
+        // Arrange
+        var longPath = "C:/" + string.Join("/", Enumerable.Range(1, 10).Select(i => $"folder{i}"));
+        var request = new ScanRequest { Path = longPath };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 25,
+            Items = new List<DetectedItem>()
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        okResult.StatusCode.Should().Be(StatusCodes.Status200OK);
+    }
+
+    [Fact]
+    public async Task Scan_WithNullPathProperty_ReturnsBadRequest()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = null! };
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<BadRequestObjectResult>();
+        var badResult = (BadRequestObjectResult)result.Result;
+        badResult.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task Scan_VerifiesServiceIsCalledWithCorrectRequest()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/verify-test" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 5,
+            Items = new List<DetectedItem>()
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(It.IsAny<ScanRequest>()))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        _mockFileScanner.Verify(
+            fs => fs.ScanAsync(It.Is<ScanRequest>(r => r.Path == "C:/verify-test")),
+            Times.Once,
+            "Service should be called exactly once with the correct path");
+    }
+
+    [Fact]
+    public async Task Scan_WithRequestHavingDetectedItemsWithVersions_ReturnsItemsAsIs()
+    {
+        // Arrange
+        var request = new ScanRequest { Path = "C:/app" };
+        var result_data = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+            FilesScanned = 30,
+            Items = new List<DetectedItem>
+            {
+                new() { Kind = "Node.js", Name = "React", Version = "19.0", Evidence = "package.json" },
+                new() { Kind = "CSharp", Name = "App", Version = "10.0", Evidence = "App.csproj" }
+            }
+        };
+
+        _mockFileScanner.Setup(fs => fs.ScanAsync(request))
+            .ReturnsAsync(result_data);
+
+        // Act
+        var result = await _controller.Scan(request);
+
+        // Assert
+        result.Result.Should().BeOfType<OkObjectResult>();
+        var okResult = (OkObjectResult)result.Result;
+        var returnedResult = (ScanResult)okResult.Value;
+        returnedResult.Items.Should().HaveCount(2);
+        returnedResult.Items[0].Version.Should().Be("19.0");
+        returnedResult.Items[1].Version.Should().Be("10.0");
+    }
 }
