@@ -6,19 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "Codebase Technology Scanner API",
-        Version = "v1",
-        Description = "API for scanning codebases to detect technologies like .csproj, package.json, and Dockerfile",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "Tech Scanner Team",
-        },
-    });
-});
+builder.Services.AddSwaggerGen();
 builder.Services.AddHealthChecks();
 
 builder.Services.AddScoped<IFileScanner, FileScanner>();
