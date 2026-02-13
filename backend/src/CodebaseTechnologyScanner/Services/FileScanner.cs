@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 namespace CodebaseTechnologyScanner.Services;
 
 /// <summary>
-/// Provides functionality to scan directories for technology-related files.
+/// Implements directory scanning to detect technology-related files.
 /// </summary>
 /// <param name="logger">The logger instance for structured logging.</param>
 public class FileScanner(ILogger<FileScanner> logger) : IFileScanner
@@ -14,29 +14,32 @@ public class FileScanner(ILogger<FileScanner> logger) : IFileScanner
     /// <summary>
     /// Asynchronously scans a directory for technology-related files such as .csproj, package.json, and Dockerfile.
     /// </summary>
-    /// <param name="directoryPath">The path to the directory to scan.</param>
+    /// <param name="request">The scan request containing the directory path.</param>
     /// <returns>A task that represents the asynchronous operation. The task result contains the scan results.</returns>
-    public async Task<ScanResult> ScanDirectoryAsync(string directoryPath)
+    public async Task<ScanResult> ScanAsync(ScanRequest request)
     {
-        ArgumentNullException.ThrowIfNull(directoryPath);
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(request.Path);
 
-        var result = new ScanResult();
+        var result = new ScanResult
+        {
+            StartedAt = DateTimeOffset.UtcNow,
+        };
 
         try
         {
-            if (!Directory.Exists(directoryPath))
+            if (!Directory.Exists(request.Path))
             {
-                _logger.LogWarning("Directory not found: {DirectoryPath}", directoryPath);
-                result.Error = "Directory not found";
+                _logger.LogWarning("Directory not found: {DirectoryPath}", request.Path);
                 return result;
             }
 
-            _logger.LogInformation("Starting directory scan: {DirectoryPath}", directoryPath);
+            _logger.LogInformation("Starting directory scan: {DirectoryPath}", request.Path);
 
             await Task.Run(() =>
             {
-                var files = Directory.GetFiles(directoryPath, "*.*", SearchOption.AllDirectories);
-                result.TotalFiles = files.Length;
+                var files = Directory.GetFiles(request.Path, "*.*", SearchOption.AllDirectories);
+                result.FilesScanned = files.Length;
 
                 foreach (var file in files)
                 {
@@ -44,30 +47,42 @@ public class FileScanner(ILogger<FileScanner> logger) : IFileScanner
 
                     if (fileName.EndsWith(".csproj", StringComparison.OrdinalIgnoreCase))
                     {
-                        result.CsProjFiles.Add(file);
+                        result.Items.Add(new DetectedItem
+                        {
+                            Kind = "CSharp",
+                            Name = Path.GetFileNameWithoutExtension(file),
+                            Evidence = file,
+                        });
                     }
                     else if (fileName.Equals("package.json", StringComparison.OrdinalIgnoreCase))
                     {
-                        result.PackageJsonFiles.Add(file);
+                        result.Items.Add(new DetectedItem
+                        {
+                            Kind = "Node.js",
+                            Name = "Node.js Project",
+                            Evidence = file,
+                        });
                     }
                     else if (fileName.Equals("Dockerfile", StringComparison.OrdinalIgnoreCase))
                     {
-                        result.Dockerfiles.Add(file);
+                        result.Items.Add(new DetectedItem
+                        {
+                            Kind = "Docker",
+                            Name = "Docker",
+                            Evidence = file,
+                        });
                     }
                 }
             }).ConfigureAwait(false);
 
             _logger.LogInformation(
-                "Scan completed. Found {TotalFiles} total files, {CsProjCount} .csproj, {PackageJsonCount} package.json, {DockerfileCount} Dockerfile",
-                result.TotalFiles,
-                result.CsProjFiles.Count,
-                result.PackageJsonFiles.Count,
-                result.Dockerfiles.Count);
+                "Scan completed. Found {FilesScanned} total files, {ItemsCount} technology items detected",
+                result.FilesScanned,
+                result.Items.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error scanning directory: {DirectoryPath}", directoryPath);
-            result.Error = ex.Message;
+            _logger.LogError(ex, "Error scanning directory: {DirectoryPath}", request.Path);
         }
 
         return result;
