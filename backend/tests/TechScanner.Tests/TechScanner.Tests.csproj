@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CodebaseTechnologyScanner\CodebaseTechnologyScanner.csproj" />
+    <ProjectReference Include="..\..\src\CodebaseTechnologyScanner\CodebaseTechnologyScanner.csproj" />
   </ItemGroup>
 
 </Project>
