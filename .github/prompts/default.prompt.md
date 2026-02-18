@@ -27,14 +27,13 @@ Your task is to ensure .NET 10 / latest C# code in ${selection} meets the best p
 
 - Create comprehensive XML documentation comments for all public classes, interfaces, methods, and properties
 - Include parameter descriptions and return value descriptions in XML comments
-- Follow the established namespace structure: {Core|Console|App|Service}.{Feature}
+- Follow the existing solution namespace conventions and avoid introducing new namespace patterns without need
 
 ## Design Patterns & Architecture
 
 - Use primary constructor syntax for dependency injection (e.g., `public class MyClass(IDependency dependency)`)
-- Implement the Command Handler pattern with generic base classes (e.g., `CommandHandler<TOptions>`)
 - Use interface segregation with clear naming conventions (prefix interfaces with 'I')
-- Follow the Factory pattern for complex object creation.
+- Keep architecture simple and course-level; use patterns only when they solve an active problem.
 
 ## Dependency Injection & Services
 
@@ -58,7 +57,7 @@ Your task is to ensure .NET 10 / latest C# code in ${selection} meets the best p
 
 ## Testing Standards
 
-- Use MSTest framework with FluentAssertions for assertions
+- Use xUnit framework with FluentAssertions for assertions
 - Follow AAA pattern (Arrange, Act, Assert)
 - Use Moq for mocking dependencies
 - Test both success and failure scenarios
@@ -70,13 +69,6 @@ Your task is to ensure .NET 10 / latest C# code in ${selection} meets the best p
 - Implement validation attributes (Required, NotEmptyOrWhitespace)
 - Use IConfiguration binding for settings
 - Support appsettings.json configuration files
-
-## Semantic Kernel & AI Integration
-
-- Use Microsoft.SemanticKernel for AI operations
-- Implement proper kernel configuration and service registration
-- Handle AI model settings (ChatCompletion, Embedding, etc.)
-- Use structured output patterns for reliable AI responses
 
 ## Error Handling & Logging
 

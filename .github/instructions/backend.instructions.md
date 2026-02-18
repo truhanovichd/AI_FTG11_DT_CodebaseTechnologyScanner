@@ -31,7 +31,7 @@
 
 ## Testing Expectations
 
-- Use MSTest for backend tests.
+- Use xUnit for backend tests.
 - Prefer FluentAssertions for expressive assertions.
 - Follow AAA pattern (Arrange, Act, Assert).
 - Cover both successful and failure scenarios.
